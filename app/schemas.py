@@ -1,6 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+
+def serialize_dt(dt: datetime) -> Optional[str]:
+    if dt is None:
+        return None
+    # Normalize to naive UTC and append 'Z'
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    # Format to ISO 8601 with trailing Z
+    return dt.isoformat() + "Z"
 
 
 class RegisterRequest(BaseModel):
@@ -69,6 +79,10 @@ class BookingOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_serializer("start_time", "end_time", "created_at")
+    def serialize_dates(self, dt: datetime) -> Optional[str]:
+        return serialize_dt(dt)
+
 
 class PaginatedBookings(BaseModel):
     items: List[BookingOut]
@@ -83,6 +97,10 @@ class RefundLogOut(BaseModel):
     processed_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("processed_at")
+    def serialize_processed_at(self, dt: datetime) -> Optional[str]:
+        return serialize_dt(dt)
 
 
 class BookingDetailOut(BookingOut):
@@ -100,6 +118,10 @@ class CancelResponse(BaseModel):
 class BusyInterval(BaseModel):
     start_time: datetime
     end_time: datetime
+
+    @field_serializer("start_time", "end_time")
+    def serialize_interval(self, dt: datetime) -> Optional[str]:
+        return serialize_dt(dt)
 
 
 class AvailabilityOut(BaseModel):
@@ -128,3 +150,7 @@ class UsageReportOut(BaseModel):
     rooms: List[UsageReportRoom]
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_serializer("from_date", "to_date")
+    def serialize_report_dates(self, dt: datetime) -> Optional[str]:
+        return serialize_dt(dt)
