@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from .. import auth, models, schemas, timeutils
+from .. import auth, models, schemas, timeutils, cache
 from ..database import get_db
 from ..services import rate_limiter, ref_codes, refunds
 from ..errors import (
@@ -104,6 +104,7 @@ def create_booking(
         db.add(booking)
         db.commit()
         db.refresh(booking)
+        cache.invalidate_room_cache(req.room_id)
 
     return booking
 
@@ -202,6 +203,7 @@ def cancel_booking(
         db.add(refund_log)
         db.commit()
         db.refresh(booking)
+        cache.invalidate_room_cache(booking.room_id)
 
     return schemas.CancelResponse(
         id=booking.id,
