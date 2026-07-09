@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 
 def normalize_datetime(dt: datetime) -> datetime:
@@ -23,3 +24,14 @@ def make_utc_aware(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def serialize_dt(dt: datetime) -> Optional[str]:
+    """
+    Serializes a datetime to an ISO 8601 string ending with Z (UTC).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.isoformat() + "Z"
